@@ -1,10 +1,13 @@
 import queue
-from threading import Lock
 import os
+import logging
+from threading import Lock
+
 
 class Manager:
     def __init__(self, torrent, me_peer_id):
         # Pieces
+        self.piece_length = torrent.piece_length
         self.nb_pieces = len(torrent.pieces) // 20
         self.sha1_pieces = [torrent.pieces[i * 20:(i + 1) * 20] for i in range(self.nb_pieces)]
         self.pieces_to_download = [i for i in range(self.nb_pieces)]

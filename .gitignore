@@ -140,3 +140,4 @@ cython_debug/
 # Others
 .idea/
 files/*
+pieces/*
