@@ -4,3 +4,5 @@
 * https://wiki.theory.org/BitTorrentSpecification
 * mutliple announce : http://bittorrent.org/beps/bep_0012.html  
 * key parameter http://bittorrent.org/beps/bep_0007.html  
+
+next ... transform manager class into a threading class 

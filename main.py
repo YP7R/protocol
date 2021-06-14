@@ -14,7 +14,7 @@ ch.setFormatter(logging.Formatter('\033[92m%(name)s:%(levelname)s - [%(asctime)s
 logger.addHandler(ch)
 
 torrent_file = "./files/slackware64-14.2-install-dvd.torrent"
-# torrent_file = "./files/debian-10.3.0-amd64-netinst.iso.torrent"
+torrent_file = "./files/debian-10.3.0-amd64-netinst.iso.torrent"
 
 # My identification
 me_peer_id = os.urandom(20)
@@ -37,13 +37,16 @@ while True:
     manager.peers_dictionary[id_peer].peer_to_manager_lock.acquire()
 
     if Communication.PEER_DISCONNECT in manager.peers_dictionary[id_peer].peer_to_manager_events:
-        to_delete = id_peer
+        logger.debug(f"{manager.peers_dictionary[id_peer].last_message} {id_peer}")
+        peer_to_delete = id_peer
 
     else:
         if len(manager.peers_dictionary[id_peer].peer_to_manager_events) == 0:
             logger.debug(f"Why ...{id_peer}")
 
         message = manager.peers_dictionary[id_peer].peer_to_manager_events.pop(0)
+        logger.debug(f'-- {id_peer} {message}')
+
         if message == Communication.PEER_READY_DOWNLOAD:
 
             # Check if we have all pieces downloaded
@@ -81,7 +84,7 @@ while True:
         elif message == Communication.PEER_DOWNLOAD_ERROR:
             # logger.debug(f'Refus {manager.peers_dictionary[id_peer].last_message}')
             manager.pieces_to_download.append(manager.peers_dictionary[id_peer].current_no_piece)
-            to_delete = id_peer
+            peer_to_delete = id_peer
             logger.debug(f"{Communication.PEER_DOWNLOAD_ERROR} {id_peer} {manager.peers_dictionary[id_peer].current_no_piece}")
         else:
             print(f"Pourquoi tu fais ça {id_peer}")

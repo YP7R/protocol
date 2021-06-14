@@ -21,8 +21,8 @@ class Tracker(Thread):
     def __init__(self, manager):
         super(Tracker, self).__init__()
         self.setDaemon(True)  # Exit the thread when program ends
-        self.manager = manager
         self.interval = 120
+        self.manager = manager
 
     def run(self):
         while True:
@@ -43,6 +43,7 @@ class Tracker(Thread):
 
             # Go through peers
             self.manager.peers_dictionary_lock.acquire()
+            logger.debug(self.manager.peers_dictionary.keys())
             for i in range(0, len(response['peers']), 6):
                 peer = struct.unpack("!BBBBH", response['peers'][i:i + 6])
                 peer_ip = '.'.join(map(str, peer[:4]))
@@ -52,13 +53,12 @@ class Tracker(Thread):
                     remote_peer = Peer(peer_ip, peer_port,
                                        self.manager.peers_to_manager_queue,
                                        self.manager.me_peer_id,
-                                       self.manager.torrent.info_hash,
-                                       self.manager.sha1_pieces,
-                                       self.manager.piece_length)
+                                       self.manager.torrent)
                     self.manager.peers_dictionary[peer_identification] = remote_peer
 
                     logger.debug(f"{Communication.TRACKER_NEW_PEER} {remote_peer.__repr__()}")
                     remote_peer.state_machine.start()
 
+            logger.debug(self.manager.peers_dictionary.keys())
             self.manager.peers_dictionary_lock.release()
             time.sleep(self.interval)

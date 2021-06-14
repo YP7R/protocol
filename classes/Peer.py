@@ -18,14 +18,14 @@ logger.addHandler(ch)
 
 
 class Peer:
-    def __init__(self, ip_address, port, peer_to_manager_queue, me_peer_id, info_hash, sha1_pieces, piece_length):
+    def __init__(self, ip_address, port, peer_to_manager_queue, me_peer_id, torrent): #info_hash, sha1_pieces, piece_length):
+
         # Peer information
         self.remote_ip_address = ip_address
         self.remote_port = port
         self.peer_id = me_peer_id
-        self.info_hash = info_hash
-        self.sha1_pieces = sha1_pieces
-        self.piece_length = piece_length
+
+        self.torrent = torrent
 
         # Peer information
         self.remote_handshake = None
@@ -40,14 +40,14 @@ class Peer:
         self.keep_alive = 0
 
         # Communication this peer to manager
-        self.peer_to_manager_queue = peer_to_manager_queue
-        self.peer_to_manager_lock = Lock()
         self.peer_to_manager_events = []
+        self.peer_to_manager_lock = Lock()
+        self.peer_to_manager_queue = peer_to_manager_queue
 
         # Communication manager to this peer
-        self.manager_to_peer_queue = queue.Queue()
-        self.manager_to_peer_lock = Lock()
         self.manager_to_peer_events = []
+        self.manager_to_peer_lock = Lock()
+        self.manager_to_peer_queue = queue.Queue()
 
         # Currently downloading
         self.current_bytes_to_download = None
@@ -59,7 +59,7 @@ class Peer:
         self.soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.soc.settimeout(2)
 
-        self.state = ""  # Communication.PEER_STATE_INIT
+        self.state = Communication.PEER_STATE_INIT
         self.state_machine = Thread(target=self.state_machine_run)
 
         self.last_message = ""
@@ -88,7 +88,7 @@ class Peer:
                               len(protocol_str),
                               protocol_str.encode(),
                               '00000000'.encode(),
-                              self.info_hash,
+                              self.torrent.info_hash,
                               self.peer_id)
 
         output = send_n_bytes(self.soc, message)
@@ -97,7 +97,7 @@ class Peer:
     def check_handshake(self):
         condition_protocol_len = self.remote_handshake[0] == 19
         condition_protocol_str = self.remote_handshake[1].decode() == 'BitTorrent protocol'
-        condition_info_hash = self.remote_handshake[3] == self.info_hash
+        condition_info_hash = self.remote_handshake[3] == self.torrent.info_hash
         if condition_protocol_len and condition_protocol_str and condition_info_hash:
             return True
         else:
@@ -157,7 +157,6 @@ class Peer:
             self.add_peer_event(Communication.PEER_DISCONNECT)
             self.notify_manager()
             logger.debug(f"{Communication.PEER_DISCONNECT} {self.__repr__()}")
-
             return
 
         # Send interested
@@ -197,14 +196,13 @@ class Peer:
                 logger.debug(f"{Communication.PEER_DISCONNECT} {self.__repr__()}")
                 return
 
-
             elif instruction == Communication.MANAGER_WAIT:
                 time.sleep(2)
 
             elif instruction.startswith(Communication.MANAGER_DOWNLOAD_REQUEST):
                 instr, no_piece = instruction.split(":")
-                # loggder.debug(instruction)
-                self.current_bytes_to_download = self.piece_length
+                logger.debug(instruction)
+                self.current_bytes_to_download = self.torrent.piece_length
                 self.current_no_piece = int(no_piece)
                 self.current_offset = 0
                 self.current_piece = b''
@@ -228,7 +226,8 @@ class Peer:
                         return
 
                 sha1_piece = hashlib.sha1(self.current_piece).digest()
-                verified_sha1_piece = self.sha1_pieces[self.current_no_piece]
+                # verified_sha1_piece = self.torrent.sha1_pieces[self.current_no_piece]
+                verified_sha1_piece = self.torrent.pieces[self.current_no_piece*20:(self.current_no_piece+1)*20]
 
                 if sha1_piece == verified_sha1_piece:
                     with open(f'./pieces/piece_{self.current_no_piece}.part', 'w+b') as fp:
@@ -246,6 +245,7 @@ class Peer:
 
         # Read len-prefix
         raw = read_n_bytes(self.soc, 4, timeout=None)
+        # logger.debug(f"{self.__repr__()} {raw}")
         if raw is None:
             self.last_message = 'Lecture de len_prefix'
             return output
@@ -281,7 +281,7 @@ class Peer:
 
         elif message_id == Communication.PROTOCOL_BITFIELD:
             # TODO: Longueur du bitfield doit être égale au nombre de sha1 len(pieces_sha1)
-            # len(bitfield)*8 == self.infos['nb_piecess_sha1']
+            # len(bitfield)*8 == len(self.torrent.sha1_pieces)
             bitfield = raw_data[1:]
             remote_bitfield = bitarray(endian='big')
             remote_bitfield.frombytes(bitfield)
@@ -309,8 +309,8 @@ class Peer:
             no_piece, offset = struct.unpack('!II', raw_data[1:9])
             if no_piece == self.current_no_piece and offset == self.current_offset:
                 self.current_piece += raw_data[9:]
-                self.current_offset += 2 ** 15
-                self.current_bytes_to_download -= 2 ** 15
+                self.current_offset += (2 ** 15)
+                self.current_bytes_to_download -= (2 ** 15)
                 self.last_message = 'Reception d\'une piece'
 
                 return Communication.PEER_PIECE

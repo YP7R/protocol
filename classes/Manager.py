@@ -9,9 +9,9 @@ class Manager:
         # Pieces
         self.piece_length = torrent.piece_length
         self.nb_pieces = len(torrent.pieces) // 20
-        self.sha1_pieces = [torrent.pieces[i * 20:(i + 1) * 20] for i in range(self.nb_pieces)]
         self.pieces_to_download = [i for i in range(self.nb_pieces)]
         self.verified_pieces = []
+        # self.sha1_pieces = [torrent.pieces[i * 20:(i + 1) * 20] for i in range(self.nb_pieces)]
 
         # Peers
         self.peers_dictionary = {}
@@ -37,9 +37,9 @@ class Manager:
                         {'info_hash': self.torrent.info_hash,
                          'peer_id': self.me_peer_id,
                          'port': 6881,
-                         'numwant': 50,
                          'uploaded': self.upload,
                          'downloaded': self.download,
+                         'numwant': 100,
                          'left': self.left,
                          'key': self.key,
                          'compact': 1,
