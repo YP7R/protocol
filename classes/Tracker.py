@@ -21,7 +21,7 @@ class Tracker(Thread):
     def __init__(self, manager):
         super(Tracker, self).__init__()
         self.setDaemon(True)  # Exit the thread when program ends
-        self.interval = 120
+        self.interval = 90
         self.manager = manager
 
     def run(self):
@@ -38,7 +38,7 @@ class Tracker(Thread):
                 continue
 
             if 'interval' in response:
-                self.interval = 120 or response['interval']
+                self.interval = 90 or response['interval']
                 logger.debug(f"{Communication.TRACKER_INTERVAL} {self.interval}")
 
             # Go through peers

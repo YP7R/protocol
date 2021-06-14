@@ -197,7 +197,7 @@ class Peer:
                 return
 
             elif instruction == Communication.MANAGER_WAIT:
-                time.sleep(2)
+                time.sleep(20)
 
             elif instruction.startswith(Communication.MANAGER_DOWNLOAD_REQUEST):
                 instr, no_piece = instruction.split(":")

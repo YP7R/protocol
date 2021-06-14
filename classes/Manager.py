@@ -39,7 +39,7 @@ class Manager:
                          'port': 6881,
                          'uploaded': self.upload,
                          'downloaded': self.download,
-                         'numwant': 100,
+                         'numwant': 150,
                          'left': self.left,
                          'key': self.key,
                          'compact': 1,
